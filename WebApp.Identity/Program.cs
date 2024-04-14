@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using WebApp.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,6 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddIdentityCore<MyUser>( options => { });
+
+builder.Services.AddScoped<IUserStore<MyUser>, MyUserStore>();
 
 var app = builder.Build();
 

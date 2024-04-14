@@ -5,7 +5,7 @@ using System.Data.SqlClient;
 
 namespace WebApp.Identity
 {
-    public class MyUserStore : IUserStore<MyUser>
+    public class MyUserStore : IUserStore<MyUser>, IUserPasswordStore<MyUser>
     {
         public async Task<IdentityResult> CreateAsync(MyUser user, CancellationToken cancellationToken)
         {
@@ -13,12 +13,12 @@ namespace WebApp.Identity
             {
                 await connection.ExecuteAsync("Insert into Users " +
                     "([Id],[UserName],[NormalizedUserName],[PasswordHash]) " +
-                    "Values (@Id ,@UserName ,@NormalizedUserName ,@PasswordHash)",
+                    "Values (@Id ,@UserName ,@normalizedUserName ,@PasswordHash)",
                     new
                     {
                         id = user.Id,
                         username = user.UserName,
-                        normalizeduserName = user.NormalizedUserName,
+                        normalizedUserName = user.NormalizedUserName,
                         passwordHash = user.PasswordHash
                     });
                 return IdentityResult.Success;
@@ -44,12 +44,19 @@ namespace WebApp.Identity
 
         public static DbConnection GetOpenConnection()
         {
-            var connection = new SqlConnection("Integrated Security=SSPI;" +
-                "Persist Security Info=False;" +
-                "Initial Catalog=IDENTITY_APP;" +
-                @"Data Source=DESKTOP-LUIZ\\SQLEXPRESS");
-            connection.Open();
-            return connection;
+            try
+            {
+                var connection = new SqlConnection("Integrated Security=SSPI;" +
+                    "Persist Security Info=False;" +
+                    "Initial Catalog=IDENTITY_APP;" +
+                    "Data Source=DESKTOP-LUIZ\\SQLEXPRESS");
+                    connection.Open();
+                return connection;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<MyUser?> FindByIdAsync(string userId, CancellationToken cancellationToken)
@@ -68,7 +75,7 @@ namespace WebApp.Identity
             {
                 return await connection.QueryFirstOrDefaultAsync<MyUser>(
                     "select * from Users where normalizedUserName = @normalizedUserName",
-                    new { name = normalizedUserName });
+                    new { normalizedUserName });
             }
         }
 
@@ -106,7 +113,7 @@ namespace WebApp.Identity
                 await connection.ExecuteAsync("Update Users " +
                     "set [Id] = @Id, " +
                     "[UserName] = @UserName, " +
-                    "[NormalizedUserName] = @NormalizedUserName, " +
+                    "[NormalizedUserName] = @normalizedUserName, " +
                     "[PasswordHash] = @PasswordHash " +
                     "where [Id] = @id",
                     new
@@ -118,6 +125,22 @@ namespace WebApp.Identity
                     });
                 return IdentityResult.Success;
             }
+        }
+
+        public Task SetPasswordHashAsync(MyUser user, string? passwordHash, CancellationToken cancellationToken)
+        {
+            user.PasswordHash = passwordHash;
+            return Task.CompletedTask;
+        }
+
+        public Task<string?> GetPasswordHashAsync(MyUser user, CancellationToken cancellationToken)
+        {
+           return Task.FromResult(user.PasswordHash);
+        }
+
+        public Task<bool> HasPasswordAsync(MyUser user, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(user.PasswordHash != null);
         }
     }
 }
