@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Security.Claims;
 using WebApp.Identity.Models;
 
 namespace WebApp.Identity.Controllers
@@ -60,6 +62,34 @@ namespace WebApp.Identity.Controllers
 
         [HttpGet]
         public async Task<IActionResult> Register()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Login(LoginModel model)
+        {
+            if (!ModelState.IsValid) 
+            {
+                var user = await _userManager.FindByNameAsync(model.UserName);
+
+                if(user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+                {
+                    var identity = new ClaimsIdentity("cookies");
+                    identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id));
+                    identity.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
+
+                    await HttpContext.SignInAsync("cookies", new ClaimsPrincipal(identity));
+                    return RedirectToAction("About");
+                }
+
+                ModelState.AddModelError("", "Usuário ou senha inválida.");
+            }
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Login()
         {
             return View();
         }
